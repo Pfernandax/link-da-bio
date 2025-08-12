@@ -33,11 +33,11 @@ export type PageConfig = {
   slug: string;
   title: string;
   bio?: string;
-  avatar?: { src?: string }; // dataURL/URL
+  avatar?: { src?: string };
   theme: ThemeConfig;
   socials: SocialLink[];
   categories: Category[];
-  topLinks: { id: string; label: string; url: string }[]; // links de topo (p/ outros perfis/páginas)
+  topLinks: { id: string; label: string; url: string }[];
 };
 
 // ===================== Defaults =====================
@@ -280,7 +280,7 @@ function PhonePreview({ page }: { page: PageConfig }) {
               </div>
               <div className="space-y-3">
                 {(cat.limit ? cat.items.slice(0, cat.limit) : cat.items).map((l) => (
-                  <a key={l.id} href={l.url} target="_blank" className="block" onClick={() => { /* contador via API */ }}>
+                  <a key={l.id} href={l.url} target="_blank" className="block">
                     <ButtonPreview label={l.label} cfg={cfg} />
                   </a>
                 ))}
@@ -301,14 +301,7 @@ function PhonePreview({ page }: { page: PageConfig }) {
 export default function EditorLinkBioAvancado() {
   const [page, setPage] = useState<PageConfig>(INITIAL);
 
-  const cssVars = useMemo(() => {
-    const cfg = page.theme;
-    return `:root{\n  --bg: ${cfg.background.value};\n  --text: ${cfg.palette.text};\n  --muted: ${cfg.palette.muted};\n  --card: ${cfg.palette.card};\n  --accent: ${cfg.palette.accent};\n}`;
-  }, [page.theme]);
-
-  const exportJSON = useMemo(() => JSON.stringify(page, null, 2), [page]);
-
-  // Helpers: atualizar estruturas
+  // Helpers
   const updateTheme = (patch: Partial<ThemeConfig>) => setPage((p) => ({ ...p, theme: { ...p.theme, ...patch } }));
 
   const handleAvatarFile = async (file?: File | null) => {
@@ -348,6 +341,23 @@ export default function EditorLinkBioAvancado() {
     copy.splice(to, 0, item);
     return copy;
   };
+
+  // --------- NOVO: gerar link público ----------
+  const makeShareUrl = (p: PageConfig) => {
+    const raw = JSON.stringify(p);
+    const encoded = encodeURIComponent(
+      btoa(unescape(encodeURIComponent(raw)))
+    );
+    return `${location.origin}/v/${encoded}`;
+  };
+
+  const publish = () => {
+    const url = makeShareUrl(page);
+    navigator.clipboard.writeText(url).catch(() => {});
+    window.open(url, "_blank");
+    alert("Link público copiado para a área de transferência!");
+  };
+  // ---------------------------------------------
 
   return (
     <div className="min-h-screen bg-[#0b1020] text-white">
@@ -521,45 +531,14 @@ export default function EditorLinkBioAvancado() {
             </div>
           </Section>
 
-          {/* Exportação */}
-          <Section title="Exportar/Importar">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-white/80">CSS Variables</span>
-                <button className="px-3 py-1.5 rounded-xl border bg-white/5 hover:bg-white/10 text-sm" onClick={() => navigator.clipboard.writeText(cssVars)}>Copiar</button>
-              </div>
-              <pre className="bg-black/30 border border-white/10 rounded-xl p-3 text-xs whitespace-pre-wrap max-h-40 overflow-auto">{cssVars}</pre>
-
-              <div className="flex items-center justify-between mt-3">
-                <span className="text-sm text-white/80">JSON completo (p/ salvar no banco)</span>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1.5 rounded-xl border bg-white/5 hover:bg-white/10 text-sm" onClick={() => navigator.clipboard.writeText(exportJSON)}>Copiar</button>
-                  <label className="px-3 py-1.5 rounded-xl border bg-white/5 hover:bg-white/10 text-sm cursor-pointer">
-                    Importar
-                    <input type="file" accept="application/json" className="hidden" onChange={async (e) => {
-                      const f = e.target.files?.[0];
-                      if (!f) return;
-                      const txt = await f.text();
-                      try { const j = JSON.parse(txt) as PageConfig; setPage(j); } catch { alert("JSON inválido"); }
-                    }} />
-                  </label>
-                </div>
-              </div>
-              <pre className="bg-black/30 border border-white/10 rounded-xl p-3 text-xs whitespace-pre overflow-auto max-h-64">{exportJSON}</pre>
-
-              {/* Exemplo de salvar no backend
-              <button
-                onClick={async () => {
-                  await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: page.slug, title: page.title, bio: page.bio, theme: page.theme, socials: page.socials, categories: page.categories }) });
-                  alert("Salvo!");
-                }}
-                className="w-full mt-2 px-4 py-2 rounded-xl border bg-emerald-500/20 border-emerald-300/30"
-              >
-                Salvar no backend (exemplo)
-              </button>
-              */}
-            </div>
-          </Section>
+          {/* --------- Botão para gerar link público --------- */}
+          <button
+            onClick={publish}
+            className="w-full mt-2 px-4 py-2 rounded-xl border border-white/15 bg-emerald-500/20 hover:bg-emerald-500/30 font-semibold"
+          >
+            Gerar link público
+          </button>
+          {/* -------------------------------------------------- */}
         </div>
 
         {/* Preview */}

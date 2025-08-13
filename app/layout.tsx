@@ -11,15 +11,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body>
-        <header className="border-b border-white/10">
+        <header className="border-b border-white/10 bg-[#0b1020] text-white">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <Link href="/" className="font-extrabold">LinkBio</Link>
-            <nav className="flex items-center gap-4 text-sm">
-              <Link href="/editor">Abrir o Editor</Link>
+            <nav className="flex gap-4 text-sm">
+              <Link href="/editor" className="hover:underline">Editor</Link>
+              <a href="/v" className="hover:underline">/v</a>
             </nav>
           </div>
         </header>
-        <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
+        {children}
       </body>
     </html>
   );

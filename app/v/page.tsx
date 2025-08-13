@@ -2,11 +2,15 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 
-// importante: gera HTML estático para a rota /v
-export const dynamic = "force-static";
+// garanta que a rota /v exista em runtime (edge) e não seja pré-renderizada
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-/* Tipos mínimos usados no render */
-type SocialIcon = "instagram" | "whatsapp" | "youtube" | "tiktok" | "telegram" | "x" | "facebook" | "site" | "email";
+/* ===== Tipos ===== */
+type SocialIcon =
+  | "instagram" | "whatsapp" | "youtube" | "tiktok" | "telegram" | "x" | "facebook" | "site" | "email";
+
 type ThemeConfig = {
   background: { type: "color" | "gradient" | "image"; value: string };
   palette: { text: string; accent: string; muted: string; card: string };
@@ -16,22 +20,17 @@ type LinkItem = { id: string; label: string; url: string; icon?: SocialIcon };
 type Category = { id: string; title: string; limit?: number; items: LinkItem[] };
 type SocialLink = { id: string; type: SocialIcon; url: string };
 type PageConfig = {
-  slug: string;
-  title: string;
-  bio?: string;
-  avatar?: { src?: string };
-  theme: ThemeConfig;
-  socials: SocialLink[];
-  categories: Category[];
+  slug: string; title: string; bio?: string; avatar?: { src?: string };
+  theme: ThemeConfig; socials: SocialLink[]; categories: Category[];
   topLinks: { id: string; label: string; url: string }[];
 };
 
-/** Decode só no browser (usa window.atob) */
+/* ===== Utils (decode só no browser) ===== */
 function decodePageParam(b64Uri: string): PageConfig | null {
   try {
     const b64 = decodeURIComponent(b64Uri);
-    const binary = window.atob(b64);
-    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    const bin = window.atob(b64);
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
     const json = new TextDecoder().decode(bytes);
     return JSON.parse(json) as PageConfig;
   } catch {
@@ -39,7 +38,7 @@ function decodePageParam(b64Uri: string): PageConfig | null {
   }
 }
 
-/* Ícones bem simples (mesmos do editor) */
+/* ===== Ícones simples ===== */
 const Icon = ({ name, className = "w-5 h-5" }: { name: SocialIcon; className?: string }) => {
   const common = { className, fill: "currentColor" } as any;
   switch (name) {
@@ -62,14 +61,15 @@ function Button({ label, cfg }: { label: string; cfg: ThemeConfig }) {
     color: cfg.button.variant === "solid" ? "#0b1020" : cfg.palette.accent,
     backgroundColor: cfg.button.variant === "solid" ? cfg.palette.accent : "transparent",
     borderColor: cfg.button.variant === "outline" ? cfg.palette.accent : "transparent",
-    boxShadow:
-      cfg.button.shadow === "none" ? "none" :
-      cfg.button.shadow === "soft" ? "0 8px 24px rgba(0,0,0,.25)" :
-      "0 12px 36px rgba(0,0,0,.35)",
+    boxShadow: cfg.button.shadow === "none" ? "none"
+      : cfg.button.shadow === "soft" ? "0 8px 24px rgba(0,0,0,.25)"
+      : "0 12px 36px rgba(0,0,0,.35)",
   }), [cfg]);
 
-  const cn = "w-full font-semibold px-4 py-3 border transition-transform active:translate-y-px " +
-             (cfg.button.variant === "ghost" ? "hover:bg-white/10" : "hover:opacity-90");
+  const cn =
+    "w-full font-semibold px-4 py-3 border transition-transform active:translate-y-px " +
+    (cfg.button.variant === "ghost" ? "hover:bg-white/10" : "hover:opacity-90");
+
   return <button className={cn} style={style}>{label}</button>;
 }
 
@@ -77,15 +77,11 @@ export default function PublicPage() {
   const [page, setPage] = useState<PageConfig | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  // Faz o decode apenas no navegador
   useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const d = params.get("d");
-      setPage(d ? decodePageParam(d) : null);
-    } finally {
-      setLoaded(true);
-    }
+    const params = new URLSearchParams(window.location.search);
+    const d = params.get("d");
+    setPage(d ? decodePageParam(d) : null);
+    setLoaded(true);
   }, []);
 
   if (!loaded) {
@@ -115,7 +111,7 @@ export default function PublicPage() {
         {page.topLinks.length > 0 && (
           <nav className="flex items-center justify-center gap-3 text-xs mb-4" style={{ color: cfg.palette.muted }}>
             {page.topLinks.map((t) => (
-              <a key={t.id} href={t.url} target="_blank" className="hover:underline" rel="noreferrer">
+              <a key={t.id} href={t.url} target="_blank" rel="noreferrer" className="hover:underline">
                 {t.label}
               </a>
             ))}
@@ -123,7 +119,10 @@ export default function PublicPage() {
         )}
 
         <div className="text-center mb-5">
-          <div className="w-28 h-28 rounded-full mx-auto mb-3 border border-white/20 overflow-hidden" style={{ background:"rgba(255,255,255,.12)" }}>
+          <div
+            className="w-28 h-28 rounded-full mx-auto mb-3 border border-white/20 overflow-hidden"
+            style={{ background: "rgba(255,255,255,.12)" }}
+          >
             {page.avatar?.src && <img src={page.avatar.src} alt="avatar" className="w-full h-full object-cover" />}
           </div>
           <h1 className="text-2xl font-extrabold">{page.title}</h1>

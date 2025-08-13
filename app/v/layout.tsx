@@ -1,12 +1,7 @@
-// app/v/layout.tsx  (Server Component)
-export const runtime = "edge";          // exigido pelo next-on-pages
-export const dynamic = "force-dynamic"; // garante execução dinâmica
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default function VLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function Layout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

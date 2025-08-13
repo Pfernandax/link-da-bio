@@ -1,6 +1,8 @@
-"scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "build:cf": "npx @cloudflare/next-on-pages@latest"
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "build:cf": "npx @cloudflare/next-on-pages@1"
+  }
 }

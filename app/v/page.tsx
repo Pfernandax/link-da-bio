@@ -1,37 +1,32 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 
-/** Tipos mínimos só para render */
+/** Tipos mínimos para render */
 type SocialIcon = "instagram"|"whatsapp"|"youtube"|"tiktok"|"telegram"|"x"|"facebook"|"site"|"email";
 type ThemeConfig = {
-  background:{type:"color"|"gradient"|"image"; value:string};
-  palette:{text:string; accent:string; muted:string; card:string};
-  button:{variant:"solid"|"outline"|"ghost"; radius:number; shadow:"none"|"soft"|"lg"};
+  background: { type: "color"|"gradient"|"image"; value: string };
+  palette: { text: string; accent: string; muted: string; card: string };
+  button: { variant: "solid"|"outline"|"ghost"; radius: number; shadow: "none"|"soft"|"lg" };
 };
-type LinkItem = { id:string; label:string; url:string; icon?:SocialIcon };
-type Category = { id:string; title:string; limit?:number; items:LinkItem[] };
-type SocialLink = { id:string; type:SocialIcon; url:string };
+type LinkItem = { id: string; label: string; url: string; icon?: SocialIcon };
+type Category = { id: string; title: string; limit?: number; items: LinkItem[] };
+type SocialLink = { id: string; type: SocialIcon; url: string };
 type PageConfig = {
-  slug:string; title:string; bio?:string; avatar?:{src?:string};
-  theme:ThemeConfig; socials:SocialLink[]; categories:Category[];
-  topLinks:{id:string; label:string; url:string}[];
+  slug: string; title: string; bio?: string; avatar?: { src?: string };
+  theme: ThemeConfig; socials: SocialLink[]; categories: Category[];
+  topLinks: { id: string; label: string; url: string }[];
 };
 
-/** base64url -> string */
-function b64urlToString(b64url: string): string {
-  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
-  const bin = atob(b64 + pad);
-  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
-}
-
-/** Lê e decodifica ?d=... do query */
-function getPageFromQuery(): PageConfig | null {
-  if (typeof window === "undefined") return null;
-  const d = new URLSearchParams(window.location.search).get("d");
-  if (!d) return null;
+/** Decodifica base64url do parâmetro d */
+function decodePageParam(d: string): PageConfig | null {
   try {
-    const json = b64urlToString(decodeURIComponent(d));
+    const b64url = decodeURIComponent(d);
+    const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+    const bin = atob(b64 + pad);
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    const json = new TextDecoder().decode(bytes);
     return JSON.parse(json) as PageConfig;
   } catch {
     return null;
@@ -39,27 +34,30 @@ function getPageFromQuery(): PageConfig | null {
 }
 
 /** Botão estilizado pelo tema */
-function Button({ label, cfg }: { label:string; cfg:ThemeConfig }) {
+function Button({ label, cfg }: { label: string; cfg: ThemeConfig }) {
   const style: React.CSSProperties = useMemo(() => ({
     borderRadius: cfg.button.radius,
-    color: cfg.button.variant === "solid" ? "#0b1020" : cfg.palette.accent,
-    backgroundColor: cfg.button.variant === "solid" ? cfg.palette.accent : "transparent",
-    borderColor: cfg.button.variant === "outline" ? cfg.palette.accent : "transparent",
+    color:        cfg.button.variant === "solid" ? "#0b1020" : cfg.palette.accent,
+    background:   cfg.button.variant === "solid" ? cfg.palette.accent : "transparent",
+    borderColor:  cfg.button.variant === "outline" ? cfg.palette.accent : "transparent",
     boxShadow:
       cfg.button.shadow === "none" ? "none" :
       cfg.button.shadow === "soft" ? "0 8px 24px rgba(0,0,0,.25)" :
                                      "0 12px 36px rgba(0,0,0,.35)",
   }), [cfg]);
+
   const cn = "w-full font-semibold px-4 py-3 border transition-transform active:translate-y-px " +
              (cfg.button.variant === "ghost" ? "hover:bg-white/10" : "hover:opacity-90");
   return <button className={cn} style={style}>{label}</button>;
 }
 
 export default function PublicPage() {
-  const [page, setPage] = useState<PageConfig | null>(null);
-  useEffect(() => { setPage(getPageFromQuery()); }, []);
+  const q = useSearchParams();
+  const d = q.get("d");
+  const page = d ? decodePageParam(d) : null;
 
   if (!page) {
+    // Se a rota /v for aberta sem ?d=..., mostra mensagem amigável (sem 404)
     return (
       <div className="min-h-screen grid place-items-center bg-[#0b1020] text-white">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 max-w-md text-center">

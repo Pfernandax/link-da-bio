@@ -1,12 +1,17 @@
-"use client";
+// app/v/page.tsx
+import { redirect } from "next/navigation";
 
-import React, { useMemo } from "react";
-import { useParams } from "next/navigation";
-
-/** Exigido pelo Cloudflare Pages (Next on Pages) */
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export default function VIndex({
+  searchParams,
+}: { searchParams?: { d?: string } }) {
+  const d = searchParams?.d;
+  if (!d) redirect("/editor");
+  redirect(`/v/${encodeURIComponent(d!)}`);
+}
 
 /** Tipos mínimos para render */
 type ThemeConfig = {

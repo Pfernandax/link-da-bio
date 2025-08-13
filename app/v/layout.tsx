@@ -1,8 +1,8 @@
-// app/v/layout.tsx
 export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
-export default function VLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+import { redirect } from 'next/navigation';
+
+export default function Page({ params }: { params: { data: string } }) {
+  // Encaminha para o leitor público que usa ?d=...
+  redirect(`/v?d=${encodeURIComponent(params.data)}`);
 }

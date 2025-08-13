@@ -1,13 +1,12 @@
-"use client";
-export const runtime = "edge";
-export const dynamic = "force-dynamic";
+// app/v/layout.tsx  (Server Component)
+export const runtime = "edge";          // exigido pelo next-on-pages
+export const dynamic = "force-dynamic"; // garante execução dinâmica
 export const revalidate = 0;
 
-export const runtime = 'edge';
-
-import { redirect } from 'next/navigation';
-
-export default function Page({ params }: { params: { data: string } }) {
-  // Encaminha para o leitor público que usa ?d=...
-  redirect(`/v?d=${encodeURIComponent(params.data)}`);
+export default function VLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <>{children}</>;
 }

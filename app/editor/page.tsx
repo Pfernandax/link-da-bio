@@ -105,7 +105,7 @@ function Slider({ label, min, max, step = 1, value, onChange, unit = "px" }:{ la
   );
 }
 
-/* ===================== Ícones (bem simples) ===================== */
+/* ===================== Ícones ===================== */
 const Icon = ({ name, className="w-5 h-5" }:{ name:SocialIcon; className?:string }) => {
   const common = { className, fill:"currentColor" } as any;
   switch (name) {
@@ -120,6 +120,19 @@ const Icon = ({ name, className="w-5 h-5" }:{ name:SocialIcon; className?:string
     case "email":    return <svg {...common} viewBox="0 0 24 24"><path d="M4 4h16v12a2 2 0 01-2 2H6a2 2 0 01-2-2z"/><path d="M22 7l-10 6L2 7"/></svg>;
   }
 };
+const ICON_OPTIONS: { value: SocialIcon; label: string }[] = [
+  { value: "instagram", label: "Instagram" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "youtube", label: "YouTube" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "telegram", label: "Telegram" },
+  { value: "x", label: "X/Twitter" },
+  { value: "facebook", label: "Facebook" },
+  { value: "site", label: "Site" },
+  { value: "email", label: "E-mail" },
+];
+
+/* ===================== Pré-visualização ===================== */
 function ButtonPreview({ label, cfg }:{ label:string; cfg:ThemeConfig }) {
   const style: React.CSSProperties = useMemo(() => ({
     borderRadius: cfg.button.radius,
@@ -137,27 +150,31 @@ function PhonePreview({ page }:{ page: PageConfig }) {
   return (
     <div className="rounded-[40px] border border-white/10 bg-black/20 p-4 shadow-2xl w-[360px] mx-auto">
       <div className="rounded-3xl overflow-hidden" style={bgStyle}>
+        {/* Top Links */}
         {page.topLinks.length>0 && (
           <nav className="flex items-center justify-center gap-3 px-4 pt-4 text-xs" style={{ color: cfg.palette.muted }}>
             {page.topLinks.map(t => <a key={t.id} href={t.url} target="_blank" className="hover:underline">{t.label}</a>)}
           </nav>
         )}
+        {/* Header */}
         <div className="p-6 text-center" style={{ color: cfg.palette.text }}>
           <div className="w-24 h-24 rounded-full bg-white/20 mx-auto mb-3 border border-white/20 overflow-hidden">
             {page.avatar?.src && <img src={page.avatar.src} alt="avatar" className="w-full h-full object-cover" />}
           </div>
           <h2 className="text-xl font-extrabold">{page.title}</h2>
           {page.bio && <p className="text-sm" style={{ color: cfg.palette.muted }}>{page.bio}</p>}
+          {/* Socials */}
           {page.socials.length>0 && (
             <div className="flex items-center justify-center gap-3 mt-3">
               {page.socials.map(s => (
-                <a key={s.id} href={s.url} target="_blank" className="p-2 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15">
+                <a key={s.id} href={s.url} target="_blank" className="p-2 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15" aria-label={s.type}>
                   <Icon name={s.type} />
                 </a>
               ))}
             </div>
           )}
         </div>
+        {/* Categorias */}
         <div className="px-4 pb-6 space-y-6">
           {page.categories.map(cat => (
             <div key={cat.id}>
@@ -189,7 +206,7 @@ export default function EditorLinkBio() {
     const copy = [...arr]; const [item] = copy.splice(from, 1); copy.splice(to, 0, item); return copy;
   };
 
-  /* ------ GERAR LINK PÚBLICO (query string robusta) ------ */
+  /* ------ GERAR LINK PÚBLICO (payload para /v) ------ */
   const encodePage = (p: PageConfig) => {
     const json = JSON.stringify(p);
     const b64 = btoa(String.fromCharCode(...new TextEncoder().encode(json)));
@@ -199,15 +216,24 @@ export default function EditorLinkBio() {
   const publish = () => {
     const url = makeShareUrl(page);
     navigator.clipboard.writeText(url).catch(()=>{});
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
     alert("Link público copiado para a área de transferência!");
   };
-  /* ------------------------------------------------------- */
+  /* ------------------------------------------------- */
 
   // helpers simples
   const updateTheme = (patch: Partial<ThemeConfig>) => setPage(p => ({ ...p, theme: { ...p.theme, ...patch } }));
   const addCategory = () => setPage(p => ({ ...p, categories: [...p.categories, { id: crypto.randomUUID(), title: "Nova categoria", limit: 6, items: [] }] }));
   const addLink = (catId: string) => setPage(p => ({ ...p, categories: p.categories.map(c => c.id===catId ? { ...c, items:[...c.items,{ id: crypto.randomUUID(), label: "Novo link", url:"#"}]} : c) }));
+  const rmCategory = (id: string) => setPage(p => ({ ...p, categories: p.categories.filter(c=>c.id!==id) }));
+  const rmLink = (catId:string, id:string) => setPage(p => ({ ...p, categories: p.categories.map(c=> c.id===catId ? {...c, items:c.items.filter(i=>i.id!==id)} : c)}));
+
+  const handleAvatarFile = async (file?: File | null) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setPage((p) => ({ ...p, avatar: { src: reader.result as string } }));
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="min-h-screen bg-[#0b1020] text-white">
@@ -222,6 +248,7 @@ export default function EditorLinkBio() {
           </div>
           <p className="text-white/70 text-sm">Personalize o link e publique. O link abre em <code>/v?d=...</code>.</p>
 
+          {/* Identidade */}
           <Section title="Identidade & URL">
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -230,7 +257,7 @@ export default function EditorLinkBio() {
                   value={page.title} onChange={e=>setPage(p=>({...p,title:e.target.value}))}/>
               </div>
               <div>
-                <label className="text-sm text-white/80">Slug</label>
+                <label className="text-sm text-white/80">Slug (link)</label>
                 <input className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-sm"
                   value={page.slug} onChange={e=>setPage(p=>({...p,slug:e.target.value.toLowerCase().replace(/\s+/g,"-")}))}/>
               </div>
@@ -240,8 +267,20 @@ export default function EditorLinkBio() {
               <textarea rows={2} className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-sm"
                 value={page.bio} onChange={e=>setPage(p=>({...p,bio:e.target.value}))}/>
             </div>
+            <div className="grid grid-cols-2 gap-3 items-end mt-3">
+              <div>
+                <label className="text-sm text-white/80">Avatar (imagem)</label>
+                <input type="file" accept="image/*" className="block w-full text-sm" onChange={(e) => handleAvatarFile(e.target.files?.[0])} />
+              </div>
+              <div>
+                <label className="text-sm text-white/80">Avatar por URL (opcional)</label>
+                <input className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-sm" placeholder="https://..."
+                  onBlur={(e) => e.currentTarget.value && setPage((p) => ({ ...p, avatar: { src: e.currentTarget.value } }))} />
+              </div>
+            </div>
           </Section>
 
+          {/* Tema */}
           <Section title="Tema (cores, fundo, botões)">
             <div className="space-y-4">
               <div className="space-y-3">
@@ -258,6 +297,10 @@ export default function EditorLinkBio() {
                   placeholder={page.theme.background.type==="color" ? "#0b1020" : page.theme.background.type==="gradient" ? "linear-gradient(135deg, #22d3ee, #a78bfa)" : "url(https://...) center/cover no-repeat"}
                   value={page.theme.background.value}
                   onChange={e=>updateTheme({ background:{...page.theme.background, value:e.target.value} })}/>
+                {page.theme.background.type==="color" && (
+                  <input type="color" className="h-10 w-12 rounded" value={page.theme.background.value}
+                    onChange={(e)=>updateTheme({ background:{...page.theme.background, value:e.target.value} })}/>
+                )}
               </div>
               <div className="space-y-4">
                 <Radio label="Botão: tipo" value={page.theme.button.variant}
@@ -272,8 +315,51 @@ export default function EditorLinkBio() {
             </div>
           </Section>
 
-          <Section title="Categorias & Links">
-            <div className="space-y-4">
+          {/* Links de topo */}
+          <Section title="Links de topo (mostrar outros perfis/páginas)">
+            <div className="space-y-3">
+              {page.topLinks.map((t, i) => (
+                <div key={t.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                  <input className="bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-sm" value={t.label}
+                    onChange={(e)=>setPage((p)=>({...p, topLinks:p.topLinks.map(x=>x.id===t.id?{...x,label:e.target.value}:x)}))} placeholder="Rótulo"/>
+                  <input className="bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-sm" value={t.url}
+                    onChange={(e)=>setPage((p)=>({...p, topLinks:p.topLinks.map(x=>x.id===t.id?{...x,url:e.target.value}:x)}))} placeholder="https://..."/>
+                  <div className="flex gap-1">
+                    <button className="px-2 py-1 rounded-lg border bg-white/5" disabled={i===0} onClick={()=>setPage(p=>({...p, topLinks:move(p.topLinks,i,i-1)}))}>↑</button>
+                    <button className="px-2 py-1 rounded-lg border bg-white/5" disabled={i===page.topLinks.length-1} onClick={()=>setPage(p=>({...p, topLinks:move(p.topLinks,i,i+1)}))}>↓</button>
+                    <button className="px-2 py-1 rounded-lg border bg-white/5" onClick={()=>setPage(p=>({...p, topLinks:p.topLinks.filter(x=>x.id!==t.id)}))}>✕</button>
+                  </div>
+                </div>
+              ))}
+              <button className="mt-1 px-3 py-2 rounded-xl border bg-white/5" onClick={()=>setPage(p=>({...p, topLinks:[...p.topLinks, {id:crypto.randomUUID(), label:"Novo", url:"#"}]}))}>+ Adicionar link de topo</button>
+            </div>
+          </Section>
+
+          {/* Ícones sociais */}
+          <Section title="Ícones abaixo da bio (redes sociais)">
+            <div className="space-y-3">
+              {page.socials.map((s) => (
+                <div key={s.id} className="space-y-2 bg-white/5 border border-white/10 rounded-xl p-3">
+                  <div className="flex flex-wrap gap-2">
+                    {ICON_OPTIONS.map(o=>(
+                      <button key={o.value} onClick={()=>setPage(p=>({...p, socials:p.socials.map(x=>x.id===s.id?{...x, type:o.value}:x)}))}
+                        className={"px-2.5 py-1.5 rounded-xl border text-sm inline-flex items-center gap-2 " + (s.type===o.value ? "bg-white/15 border-white/25" : "bg-white/5 border-white/10 hover:bg-white/10")}>
+                        <Icon name={o.value} /> {o.label}
+                      </button>
+                    ))}
+                  </div>
+                  <input className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-sm" value={s.url}
+                    onChange={(e)=>setPage(p=>({...p, socials:p.socials.map(x=>x.id===s.id?{...x,url:e.target.value}:x)}))} placeholder="https://..."/>
+                  <div className="flex justify-end"><button className="px-2 py-1 rounded-lg border bg-white/5" onClick={()=>setPage(p=>({...p, socials:p.socials.filter(x=>x.id!==s.id)}))}>Remover</button></div>
+                </div>
+              ))}
+              <button className="mt-1 px-3 py-2 rounded-xl border bg-white/5" onClick={()=>setPage(p=>({...p, socials:[...p.socials, { id:crypto.randomUUID(), type:"site", url:"#"}]}))}>+ Adicionar ícone social</button>
+            </div>
+          </Section>
+
+          {/* Categorias & Links */}
+          <Section title="Grupos de botões por categoria">
+            <div className="space-y-5">
               {page.categories.map((cat, ci)=>(
                 <div key={cat.id} className="bg-white/5 border border-white/10 rounded-2xl p-3">
                   <div className="flex items-center justify-between gap-2 mb-3">
@@ -285,18 +371,25 @@ export default function EditorLinkBio() {
                         value={cat.limit ?? 6} onChange={e=>setPage(p=>({...p, categories:p.categories.map(c=>c.id===cat.id?{...c,limit:Math.max(1,parseInt(e.target.value||"1"))}:c)}))}/>
                       <button className="px-2 py-1 rounded-lg border bg-white/5" disabled={ci===0} onClick={()=>setPage(p=>({...p, categories:move(p.categories,ci,ci-1)}))}>↑</button>
                       <button className="px-2 py-1 rounded-lg border bg-white/5" disabled={ci===page.categories.length-1} onClick={()=>setPage(p=>({...p, categories:move(p.categories,ci,ci+1)}))}>↓</button>
+                      <button className="px-2 py-1 rounded-lg border bg-white/5" onClick={()=>rmCategory(cat.id)}>✕</button>
                     </div>
                   </div>
+
                   <div className="space-y-2">
                     {cat.items.map((l, li)=>(
-                      <div key={l.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                      <div key={l.id} className="grid grid-cols-[1fr_1fr_130px_auto] gap-2 items-center">
                         <input className="bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-sm"
                           value={l.label} onChange={e=>setPage(p=>({...p, categories:p.categories.map(c=>c.id===cat.id?{...c,items:c.items.map(x=>x.id===l.id?{...x,label:e.target.value}:x)}:c)}))} placeholder="Rótulo"/>
                         <input className="bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-sm"
                           value={l.url} onChange={e=>setPage(p=>({...p, categories:p.categories.map(c=>c.id===cat.id?{...c,items:c.items.map(x=>x.id===l.id?{...x,url:e.target.value}:x)}:c)}))} placeholder="https://..."/>
+                        <select className="bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-sm"
+                          value={l.icon ?? "site"} onChange={(e)=>setPage(p=>({...p, categories:p.categories.map(c=>c.id===cat.id?{...c,items:c.items.map(x=>x.id===l.id?{...x,icon:e.target.value as SocialIcon}:x)}:c)}))}>
+                          {ICON_OPTIONS.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
+                        </select>
                         <div className="flex gap-1 justify-end">
                           <button className="px-2 py-1 rounded-lg border bg-white/5" disabled={li===0} onClick={()=>setPage(p=>({...p, categories:p.categories.map(c=>c.id===cat.id?{...c,items:move(c.items,li,li-1)}:c)}))}>↑</button>
                           <button className="px-2 py-1 rounded-lg border bg-white/5" disabled={li===cat.items.length-1} onClick={()=>setPage(p=>({...p, categories:p.categories.map(c=>c.id===cat.id?{...c,items:move(c.items,li,li+1)}:c)}))}>↓</button>
+                          <button className="px-2 py-1 rounded-lg border bg-white/5" onClick={()=>rmLink(cat.id, l.id)}>✕</button>
                         </div>
                       </div>
                     ))}

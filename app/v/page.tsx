@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
+import { useParams } from "next/navigation";
+
+/** Exigido pelo Cloudflare Pages (Next on Pages) */
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 /** Tipos mínimos para render */
 type ThemeConfig = {
@@ -21,10 +27,11 @@ type PageConfig = {
   topLinks: { id: string; label: string; url: string }[];
 };
 
+/** Decodifica o payload gerado pelo editor (btoa + encodeURIComponent) */
 function decodePageParam(b64Uri: string): PageConfig | null {
   try {
     const b64 = decodeURIComponent(b64Uri);
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
     const json = new TextDecoder().decode(bytes);
     return JSON.parse(json) as PageConfig;
   } catch {
@@ -48,23 +55,17 @@ function Button({ label, cfg }: { label: string; cfg: ThemeConfig }) {
     }),
     [cfg]
   );
+
   const cn =
     "w-full font-semibold px-4 py-3 border transition-transform active:translate-y-px " +
     (cfg.button.variant === "ghost" ? "hover:bg-white/10" : "hover:opacity-90");
-  return (
-    <button className={cn} style={style}>
-      {label}
-    </button>
-  );
+
+  return <button className={cn} style={style}>{label}</button>;
 }
 
 export default function PublicPage() {
-  const [page, setPage] = useState<PageConfig | null>(null);
-
-  useEffect(() => {
-    const d = new URLSearchParams(window.location.search).get("d");
-    if (d) setPage(decodePageParam(d));
-  }, []);
+  const { data } = useParams<{ data: string }>();
+  const page = useMemo(() => decodePageParam(String(data ?? "")), [data]);
 
   if (!page) {
     return (
@@ -85,9 +86,10 @@ export default function PublicPage() {
   return (
     <div className="min-h-screen" style={{ background: cfg.background.value, color: cfg.palette.text }}>
       <div className="max-w-xl mx-auto px-4 pt-8 pb-16">
+        {/* Links do topo */}
         {page.topLinks.length > 0 && (
           <nav className="flex items-center justify-center gap-3 text-xs mb-4" style={{ color: cfg.palette.muted }}>
-            {page.topLinks.map((t) => (
+            {page.topLinks.map(t => (
               <a key={t.id} href={t.url} target="_blank" rel="noreferrer" className="hover:underline">
                 {t.label}
               </a>
@@ -95,29 +97,30 @@ export default function PublicPage() {
           </nav>
         )}
 
+        {/* Cabeçalho */}
         <div className="text-center mb-5">
           <div
             className="w-28 h-28 rounded-full mx-auto mb-3 border border-white/20 overflow-hidden"
             style={{ background: "rgba(255,255,255,.12)" }}
           >
-            {page.avatar?.src && <img src={page.avatar.src} alt="avatar" className="w-full h-full object-cover" />}
+            {page.avatar?.src && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={page.avatar.src} alt="avatar" className="w-full h-full object-cover" />
+            )}
           </div>
           <h1 className="text-2xl font-extrabold">{page.title}</h1>
-          {page.bio && (
-            <p className="text-sm mt-1" style={{ color: cfg.palette.muted }}>
-              {page.bio}
-            </p>
-          )}
+          {page.bio && <p className="text-sm mt-1" style={{ color: cfg.palette.muted }}>{page.bio}</p>}
         </div>
 
+        {/* Categorias e botões */}
         <div className="space-y-6">
-          {page.categories.map((cat) => (
+          {page.categories.map(cat => (
             <div key={cat.id}>
               <div className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: cfg.palette.muted }}>
                 {cat.title}
               </div>
               <div className="space-y-3">
-                {(cat.limit ? cat.items.slice(0, cat.limit) : cat.items).map((l) => (
+                {(cat.limit ? cat.items.slice(0, cat.limit) : cat.items).map(l => (
                   <a key={l.id} href={l.url} target="_blank" rel="noreferrer" className="block">
                     <Button label={l.label} cfg={cfg} />
                   </a>

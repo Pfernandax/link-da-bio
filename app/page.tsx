@@ -1,16 +1,18 @@
-// --------- GERAR LINK PÚBLICO (query string robusta) ---------
-const encodePage = (p: PageConfig) => {
-  const json = JSON.stringify(p);
-  const b64 = btoa(String.fromCharCode(...new TextEncoder().encode(json)));
-  return encodeURIComponent(b64);
-};
+import Link from "next/link";
 
-const makeShareUrl = (p: PageConfig) => `${location.origin}/v?d=${encodePage(p)}`;
-
-const publish = () => {
-  const url = makeShareUrl(page);
-  navigator.clipboard.writeText(url).catch(() => {});
-  window.open(url, "_blank");
-  alert("Link público copiado para a área de transferência!");
-};
-// --------------------------------------------------------------
+export default function Home() {
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-[#0b1020] text-white">
+      <div className="text-center space-y-3">
+        <h1 className="text-2xl font-extrabold">Link da Bio</h1>
+        <p className="text-white/70 text-sm">Crie e personalize seu link em poucos cliques.</p>
+        <Link
+          href="/editor"
+          className="inline-block px-4 py-2 rounded-xl border bg-white/10 hover:bg-white/15"
+        >
+          Abrir o Editor
+        </Link>
+      </div>
+    </main>
+  );
+}

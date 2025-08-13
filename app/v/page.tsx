@@ -1,40 +1,45 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 
-/** Tipos enxutos só para render da página pública */
+/** Tipos mínimos só para render */
 type SocialIcon = "instagram"|"whatsapp"|"youtube"|"tiktok"|"telegram"|"x"|"facebook"|"site"|"email";
 type ThemeConfig = {
-  background: { type: "color"|"gradient"|"image"; value: string };
-  palette: { text: string; accent: string; muted: string; card: string };
-  button: { variant: "solid"|"outline"|"ghost"; radius: number; shadow: "none"|"soft"|"lg" };
+  background:{type:"color"|"gradient"|"image"; value:string};
+  palette:{text:string; accent:string; muted:string; card:string};
+  button:{variant:"solid"|"outline"|"ghost"; radius:number; shadow:"none"|"soft"|"lg"};
 };
-type LinkItem = { id: string; label: string; url: string; icon?: SocialIcon };
-type Category = { id: string; title: string; limit?: number; items: LinkItem[] };
-type SocialLink = { id: string; type: SocialIcon; url: string };
+type LinkItem = { id:string; label:string; url:string; icon?:SocialIcon };
+type Category = { id:string; title:string; limit?:number; items:LinkItem[] };
+type SocialLink = { id:string; type:SocialIcon; url:string };
 type PageConfig = {
-  slug: string; title: string; bio?: string; avatar?: { src?: string };
-  theme: ThemeConfig; socials: SocialLink[]; categories: Category[];
-  topLinks: { id: string; label: string; url: string }[];
+  slug:string; title:string; bio?:string; avatar?:{src?:string};
+  theme:ThemeConfig; socials:SocialLink[]; categories:Category[];
+  topLinks:{id:string; label:string; url:string}[];
 };
 
-/** Decodifica o parâmetro d (base64-url -> JSON) 100% no cliente */
+/** base64url -> string */
+function b64urlToString(b64url: string): string {
+  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+  const bin = atob(b64 + pad);
+  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+}
+
+/** Lê e decodifica ?d=... do query */
 function getPageFromQuery(): PageConfig | null {
   if (typeof window === "undefined") return null;
   const d = new URLSearchParams(window.location.search).get("d");
   if (!d) return null;
   try {
-    const b64 = decodeURIComponent(d);
-    const bin = atob(b64);
-    const bytes = new Uint8Array([...bin].map(c => c.charCodeAt(0)));
-    const json = new TextDecoder().decode(bytes);
+    const json = b64urlToString(decodeURIComponent(d));
     return JSON.parse(json) as PageConfig;
   } catch {
     return null;
   }
 }
 
-/** Botão com estilos vindos do tema */
-function Button({ label, cfg }: { label: string; cfg: ThemeConfig }) {
+/** Botão estilizado pelo tema */
+function Button({ label, cfg }: { label:string; cfg:ThemeConfig }) {
   const style: React.CSSProperties = useMemo(() => ({
     borderRadius: cfg.button.radius,
     color: cfg.button.variant === "solid" ? "#0b1020" : cfg.palette.accent,
@@ -52,7 +57,6 @@ function Button({ label, cfg }: { label: string; cfg: ThemeConfig }) {
 
 export default function PublicPage() {
   const [page, setPage] = useState<PageConfig | null>(null);
-
   useEffect(() => { setPage(getPageFromQuery()); }, []);
 
   if (!page) {
@@ -68,7 +72,6 @@ export default function PublicPage() {
   }
 
   const cfg = page.theme;
-  const bgStyle: React.CSSProperties = useMemo(() => ({ background: cfg.background.value }), [cfg.background]);
 
   return (
     <div className="min-h-screen" style={{ background: cfg.background.value, color: cfg.palette.text }}>
@@ -93,7 +96,6 @@ export default function PublicPage() {
               {page.socials.map(s => (
                 <a key={s.id} href={s.url} target="_blank" rel="noreferrer"
                    className="p-2 rounded-xl" style={{ background:"rgba(255,255,255,.08)", border:"1px solid rgba(255,255,255,.12)" }}>
-                  {/* ícone minimalista só para placeholder */}
                   <span className="text-xs uppercase">{s.type}</span>
                 </a>
               ))}
